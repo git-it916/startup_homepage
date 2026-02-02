@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import NameInput from "./steps/NameInput";
 import DateWheelPicker from "./steps/DateWheelPicker";
@@ -58,6 +58,28 @@ export default function InputWizard({ onComplete, onBack }: InputWizardProps) {
   const updateBirthData = (data: Partial<BirthData>) => {
     setBirthData((prev) => ({ ...prev, ...data }));
   };
+
+  // Handle Enter key to advance to next step
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        // Check if we can proceed (name is required for step 0, gender for step 3)
+        if (currentStep === 0 && birthData.name.trim() === "") return;
+        if (currentStep === 3 && birthData.gender === null) return;
+
+        if (currentStep < TOTAL_STEPS - 1) {
+          setDirection(1);
+          setCurrentStep((prev) => prev + 1);
+        } else {
+          onComplete(birthData);
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [currentStep, birthData, onComplete]);
 
   const slideVariants = {
     enter: (direction: number) => ({
@@ -202,7 +224,7 @@ export default function InputWizard({ onComplete, onBack }: InputWizardProps) {
       </div>
 
       {/* Navigation */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4">
+      <div className="fixed bottom-6 left-0 right-0 flex items-center justify-between px-6 max-w-lg mx-auto">
         <motion.button
           onClick={prevStep}
           className="px-6 py-2 rounded-full border border-foreground/20 text-foreground/60 font-medium

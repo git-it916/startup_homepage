@@ -266,7 +266,7 @@ ${result.character.emoji} ${result.character.element}
             <div className="text-center relative z-10">
               {/* Character image or emoji */}
               <motion.div
-                className="w-56 h-64 mx-auto mb-4 relative"
+                className="w-72 h-80 mx-auto mb-6 relative"
                 animate={{ y: [0, -5, 0] }}
                 transition={{ duration: 2, repeat: Infinity }}
               >
