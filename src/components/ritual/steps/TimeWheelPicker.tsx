@@ -230,7 +230,7 @@ export default function TimeWheelPicker({
       </motion.button>
 
       <motion.div
-        className="flex items-center justify-center gap-6 mb-8"
+        className="flex items-center justify-center gap-6 mb-4"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2, duration: 0.6 }}
@@ -255,7 +255,7 @@ export default function TimeWheelPicker({
       </motion.div>
 
       <motion.div
-        className="text-center mb-8 p-4 rounded-xl border border-gold/20 bg-gold/5"
+        className="text-center mb-4 p-3 rounded-xl border border-gold/20 bg-gold/5"
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.5 }}

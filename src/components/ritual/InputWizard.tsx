@@ -168,8 +168,8 @@ export default function InputWizard({ onComplete, onBack }: InputWizardProps) {
       </div>
 
       {/* Step content */}
-      <div className="flex-1 flex items-center justify-center px-4 pb-24 pt-4">
-        <div className="w-full max-w-lg relative" style={{ minHeight: "400px" }}>
+      <div className="flex-1 flex items-center justify-center px-4 pb-20 pt-2">
+        <div className="w-full max-w-lg relative" style={{ minHeight: "300px" }}>
           <AnimatePresence mode="wait" custom={direction}>
             <motion.div
               key={currentStep}
@@ -227,15 +227,15 @@ export default function InputWizard({ onComplete, onBack }: InputWizardProps) {
       <div className="fixed bottom-6 left-0 right-0 flex items-center justify-between px-6 max-w-lg mx-auto">
         <motion.button
           onClick={prevStep}
-          className="px-6 py-2 rounded-full border border-foreground/20 text-foreground/60 font-medium
-                     hover:border-gold/50 hover:text-gold transition-all duration-300 bg-background/80 backdrop-blur-sm"
+          className="px-6 py-2 rounded-full text-white font-medium
+                     hover:text-gold transition-all duration-300"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
           {currentStep === 0 ? "Back" : "Previous"}
         </motion.button>
 
-        <span className="text-foreground/50 text-sm font-medium">
+        <span className="text-white text-sm font-medium">
           {currentStep + 1} / {TOTAL_STEPS}
         </span>
       </div>

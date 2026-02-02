@@ -51,13 +51,37 @@ export default function MatchResult({ birthData, onRestart }: MatchResultProps) 
     };
     setResult(fortune);
 
+    // Save to CSV
+    const saveData = async () => {
+      try {
+        await fetch("/api/save-result", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...birthData,
+            characterName: fortune.character.name,
+            characterElement: fortune.character.element,
+            compatibility: fortune.compatibility,
+            sajuMessage: fortune.sajuMessage,
+            dailyFortune: fortune.dailyFortune,
+            luckyItem: fortune.luckyItem,
+            luckyColor: fortune.luckyColor,
+            luckyNumber: fortune.luckyNumber,
+          }),
+        });
+      } catch (error) {
+        console.error("Failed to save result:", error);
+      }
+    };
+    saveData();
+
     // Reveal animation delay
     const timer = setTimeout(() => {
       setIsRevealing(false);
     }, 2500);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [birthData]);
 
   const generateShareText = () => {
     if (!result) return "";
@@ -75,9 +99,11 @@ ${result.character.emoji} ${result.character.element}
 나도 해보기 👉 ${typeof window !== "undefined" ? window.location.origin : ""}`;
   };
 
-  const handleShare = async (platform: "kakao" | "instagram" | "copy" | "native") => {
+  const handleShare = async (platform: "kakao" | "instagram" | "twitter" | "copy" | "native") => {
     const shareText = generateShareText();
     const shareUrl = typeof window !== "undefined" ? window.location.href : "";
+    const encodedText = encodeURIComponent(shareText);
+    const encodedUrl = encodeURIComponent(shareUrl);
 
     switch (platform) {
       case "native":
@@ -120,19 +146,36 @@ ${result.character.emoji} ${result.character.element}
             ],
           });
         } else {
-          // Fallback: Copy to clipboard and open KakaoTalk
+          // Fallback: Copy and try to open KakaoTalk
           await navigator.clipboard.writeText(shareText);
-          alert("텍스트가 복사되었습니다. 카카오톡에서 붙여넣기 해주세요!");
-          window.open("kakaotalk://", "_blank");
+          setCopySuccess(true);
+          setTimeout(() => setCopySuccess(false), 2000);
+          // Try deep link, fallback to web
+          const kakaoDeepLink = `kakaotalk://msg/text/${encodedText}`;
+          window.location.href = kakaoDeepLink;
         }
         break;
 
       case "instagram":
-        // Instagram doesn't support direct sharing, copy text and open Instagram
+        // Copy text first
         await navigator.clipboard.writeText(shareText);
-        alert("텍스트가 복사되었습니다. 인스타그램 스토리에 붙여넣기 해주세요!");
-        // Try to open Instagram app
-        window.open("instagram://story-camera", "_blank");
+        setCopySuccess(true);
+        setTimeout(() => setCopySuccess(false), 2000);
+        // Open Instagram app or web
+        const instaDeepLink = "instagram://camera";
+        const instaWebLink = "https://www.instagram.com/";
+        // Try deep link first
+        window.location.href = instaDeepLink;
+        // Fallback to web after short delay
+        setTimeout(() => {
+          window.open(instaWebLink, "_blank");
+        }, 1500);
+        break;
+
+      case "twitter":
+        // Twitter/X share
+        const twitterUrl = `https://twitter.com/intent/tweet?text=${encodedText}`;
+        window.open(twitterUrl, "_blank", "width=550,height=420");
         break;
 
       case "copy":
@@ -145,6 +188,7 @@ ${result.character.emoji} ${result.character.element}
         }
         break;
     }
+    setShowShareModal(false);
   };
 
   if (!result) return null;
@@ -228,7 +272,7 @@ ${result.character.emoji} ${result.character.element}
         >
           {/* Header */}
           <motion.div
-            className="text-center mb-6"
+            className="text-center mb-3"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.2 }}
@@ -241,7 +285,7 @@ ${result.character.emoji} ${result.character.element}
 
           {/* Character Card */}
           <motion.div
-            className="relative p-6 rounded-2xl border-2 mb-6"
+            className="relative pt-4 pb-5 px-5 rounded-2xl border-2 mb-5"
             style={{
               borderColor: `${result.character.color}60`,
               background: `linear-gradient(135deg, ${result.character.color}10 0%, transparent 50%)`,
@@ -266,7 +310,7 @@ ${result.character.emoji} ${result.character.element}
             <div className="text-center relative z-10">
               {/* Character image or emoji */}
               <motion.div
-                className="w-72 h-80 mx-auto mb-6 relative"
+                className="w-64 h-72 mx-auto mb-3 relative"
                 animate={{ y: [0, -5, 0] }}
                 transition={{ duration: 2, repeat: Infinity }}
               >
@@ -276,7 +320,7 @@ ${result.character.emoji} ${result.character.element}
                     alt={result.character.name}
                     fill
                     className="object-contain drop-shadow-2xl"
-                    style={{ objectPosition: "center bottom" }}
+                    style={{ objectPosition: "center center" }}
                     onError={() => setImageError(true)}
                     priority
                   />
@@ -291,16 +335,16 @@ ${result.character.emoji} ${result.character.element}
               <h3 className="text-3xl font-bold text-foreground mb-1">
                 {result.character.name}
               </h3>
-              <p className="text-xl font-semibold mb-2" style={{ color: result.character.color }}>
+              <p className="text-xl font-semibold mb-1" style={{ color: result.character.color }}>
                 {result.character.koreanName}
               </p>
-              <p className="text-sm font-medium text-foreground/60 mb-4">
+              <p className="text-sm font-medium text-foreground/60 mb-3">
                 {result.character.role}
               </p>
 
               {/* Element badge */}
               <div
-                className="inline-block px-4 py-1 rounded-full text-sm font-semibold mb-4"
+                className="inline-block px-4 py-1 rounded-full text-sm font-semibold mb-3"
                 style={{
                   background: `${result.character.color}20`,
                   color: result.character.color,
@@ -316,69 +360,96 @@ ${result.character.emoji} ${result.character.element}
             </div>
           </motion.div>
 
-          {/* Compatibility message */}
-          <motion.div
-            className="p-4 rounded-xl bg-gold/10 border border-gold/30 mb-4"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.5 }}
-          >
-            <p className="text-gold/80 text-xs uppercase tracking-wider mb-2 font-semibold">
-              💫 궁합
-            </p>
-            <p className="text-foreground/80 text-sm leading-relaxed">
-              {result.compatibility}
-            </p>
-          </motion.div>
+          {/* Fortune Cards - Redesigned */}
+          <div className="space-y-4 mb-6">
+            {/* Compatibility message */}
+            <motion.div
+              className="relative overflow-hidden rounded-2xl"
+              style={{
+                background: `linear-gradient(135deg, rgba(212,175,55,0.15) 0%, rgba(212,175,55,0.05) 100%)`,
+              }}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.5 }}
+            >
+              <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-gold via-gold/50 to-transparent" />
+              <div className="p-4 pl-5">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-lg">💫</span>
+                  <span className="text-gold font-bold text-sm tracking-wide">궁합</span>
+                </div>
+                <p className="text-foreground font-medium leading-relaxed">
+                  {result.compatibility}
+                </p>
+              </div>
+            </motion.div>
 
-          {/* Saju interpretation */}
-          <motion.div
-            className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/30 mb-4"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.6 }}
-          >
-            <p className="text-purple-400/80 text-xs uppercase tracking-wider mb-2 font-semibold">
-              🔮 사주 해석
-            </p>
-            <p className="text-foreground/80 text-sm leading-relaxed">
-              {result.sajuMessage}
-            </p>
-          </motion.div>
+            {/* Saju interpretation */}
+            <motion.div
+              className="relative overflow-hidden rounded-2xl"
+              style={{
+                background: `linear-gradient(135deg, rgba(168,85,247,0.15) 0%, rgba(168,85,247,0.05) 100%)`,
+              }}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.6 }}
+            >
+              <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-purple-400 via-purple-400/50 to-transparent" />
+              <div className="p-4 pl-5">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-lg">🔮</span>
+                  <span className="text-purple-400 font-bold text-sm tracking-wide">사주 해석</span>
+                </div>
+                <p className="text-foreground font-medium leading-relaxed">
+                  {result.sajuMessage}
+                </p>
+              </div>
+            </motion.div>
 
-          {/* Daily fortune */}
-          <motion.div
-            className="p-4 rounded-xl bg-foreground/5 border border-foreground/10 mb-6"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.7 }}
-          >
-            <p className="text-foreground/60 text-xs uppercase tracking-wider mb-2 font-semibold">
-              ☀️ 오늘의 운세
-            </p>
-            <p className="text-foreground/80 text-sm leading-relaxed">
-              {result.dailyFortune}
-            </p>
-          </motion.div>
+            {/* Daily fortune */}
+            <motion.div
+              className="relative overflow-hidden rounded-2xl"
+              style={{
+                background: `linear-gradient(135deg, rgba(251,191,36,0.15) 0%, rgba(251,191,36,0.05) 100%)`,
+              }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.7 }}
+            >
+              <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-amber-400 via-amber-400/50 to-transparent" />
+              <div className="p-4 pl-5">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-lg">☀️</span>
+                  <span className="text-amber-400 font-bold text-sm tracking-wide">오늘의 운세</span>
+                </div>
+                <p className="text-foreground font-medium leading-relaxed">
+                  {result.dailyFortune}
+                </p>
+              </div>
+            </motion.div>
+          </div>
 
           {/* Lucky items section */}
           <motion.div
-            className="grid grid-cols-3 gap-3 mb-8"
+            className="grid grid-cols-3 gap-3 mb-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.8 }}
           >
-            <div className="p-3 rounded-xl bg-foreground/5 border border-foreground/10 text-center">
-              <p className="text-foreground/50 text-xs mb-1">럭키 아이템</p>
-              <p className="text-foreground/90 text-sm font-semibold">{result.luckyItem}</p>
+            <div className="p-3 rounded-xl bg-gradient-to-b from-emerald-500/20 to-emerald-500/5 border border-emerald-500/20 text-center">
+              <span className="text-lg">🍀</span>
+              <p className="text-emerald-400/80 text-[10px] uppercase tracking-wider mt-1 mb-1 font-semibold">아이템</p>
+              <p className="text-foreground text-sm font-bold">{result.luckyItem}</p>
             </div>
-            <div className="p-3 rounded-xl bg-foreground/5 border border-foreground/10 text-center">
-              <p className="text-foreground/50 text-xs mb-1">럭키 컬러</p>
-              <p className="text-foreground/90 text-sm font-semibold">{result.luckyColor}</p>
+            <div className="p-3 rounded-xl bg-gradient-to-b from-pink-500/20 to-pink-500/5 border border-pink-500/20 text-center">
+              <span className="text-lg">🎨</span>
+              <p className="text-pink-400/80 text-[10px] uppercase tracking-wider mt-1 mb-1 font-semibold">컬러</p>
+              <p className="text-foreground text-sm font-bold">{result.luckyColor}</p>
             </div>
-            <div className="p-3 rounded-xl bg-foreground/5 border border-foreground/10 text-center">
-              <p className="text-foreground/50 text-xs mb-1">럭키 넘버</p>
-              <p className="text-foreground/90 text-sm font-semibold">{result.luckyNumber}</p>
+            <div className="p-3 rounded-xl bg-gradient-to-b from-cyan-500/20 to-cyan-500/5 border border-cyan-500/20 text-center">
+              <span className="text-lg">🔢</span>
+              <p className="text-cyan-400/80 text-[10px] uppercase tracking-wider mt-1 mb-1 font-semibold">넘버</p>
+              <p className="text-foreground text-sm font-bold">{result.luckyNumber}</p>
             </div>
           </motion.div>
 
@@ -485,12 +556,12 @@ ${result.character.emoji} ${result.character.element}
                   <motion.button
                     onClick={() => handleShare("native")}
                     className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl
-                             bg-foreground/10 hover:bg-foreground/20 transition-colors"
+                             bg-gradient-to-r from-blue-500 to-purple-500 hover:opacity-90 transition-opacity"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
                     <span className="text-xl">📤</span>
-                    <span className="font-medium text-foreground">공유하기</span>
+                    <span className="font-medium text-white">바로 공유하기</span>
                   </motion.button>
                 )}
 
@@ -520,6 +591,20 @@ ${result.character.emoji} ${result.character.element}
                     <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
                   </svg>
                   <span className="font-medium text-white">인스타그램</span>
+                </motion.button>
+
+                {/* Twitter/X */}
+                <motion.button
+                  onClick={() => handleShare("twitter")}
+                  className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl
+                           bg-black hover:bg-gray-900 transition-colors"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                  </svg>
+                  <span className="font-medium text-white">X (Twitter)</span>
                 </motion.button>
 
                 {/* Copy link */}

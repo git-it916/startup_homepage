@@ -206,7 +206,7 @@ export default function DateWheelPicker({
       </motion.p>
 
       <motion.div
-        className="flex items-center justify-center gap-4 mb-12"
+        className="flex items-center justify-center gap-4 mb-6"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2, duration: 0.6 }}
@@ -241,7 +241,7 @@ export default function DateWheelPicker({
       </motion.div>
 
       <motion.div
-        className="text-center mb-8"
+        className="text-center mb-4"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.5 }}

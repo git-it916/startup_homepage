@@ -40,7 +40,7 @@ export default function GenderSelection({
         사주에서 음양은 해석에 중요한 영향을 미칩니다
       </motion.p>
       <motion.p
-        className="text-foreground/50 text-xs font-medium mb-8 text-center"
+        className="text-foreground/50 text-xs font-medium mb-4 text-center"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.4 }}
@@ -49,7 +49,7 @@ export default function GenderSelection({
       </motion.p>
 
       {/* Cards */}
-      <div className="flex flex-col sm:flex-row gap-6 mb-8 w-full px-4 justify-center">
+      <div className="flex flex-col sm:flex-row gap-4 mb-6 w-full px-4 justify-center">
         {/* Yin Card - Female */}
         <motion.button
           className={`relative flex-1 p-8 rounded-2xl border-2 transition-colors duration-300
